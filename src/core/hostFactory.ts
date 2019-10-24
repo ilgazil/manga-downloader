@@ -8,17 +8,17 @@ import JapScan from '../hosts/JapScan.ts';
 import LaBayScan from '../hosts/LaBayScan.ts';
 
 const hosts: HostInterface[] = [
-    new ByeManga(),
-    // new JapScan(),
-    new LaBayScan(),
+  new ByeManga(),
+  // new JapScan(),
+  new LaBayScan(),
 ];
 
 export default function hostFactory(url: string) {
-    const host = hosts.find((host: HostInterface) => host.match(url));
+  const host = hosts.find((host: HostInterface) => host.match(url));
 
-    if (!host) {
-        throw `No host matching ${url}`;
-    }
+  if (!host) {
+    throw `No host matching ${url}`;
+  }
 
-    return host;
+  return host;
 }

@@ -1,5 +1,5 @@
 // @ts-ignore
-const {lstatSync} = Deno;
+const {cwd, lstatSync, makeTempDirSync, mkdirSync} = Deno;
 
 function sanitizePath(path: string): string {
   if (!path) {
@@ -18,7 +18,7 @@ function sanitizePath(path: string): string {
   return parts.join('/');
 }
 
-export default class Filesystem {
+export class Filesystem {
   private readonly root: string;
 
   constructor(root: string) {
@@ -54,4 +54,26 @@ export default class Filesystem {
       return false;
     }
   }
+}
+
+export function getWorkingFilesystem(noCache: boolean): Filesystem {
+  let workingDir: string;
+
+  if (noCache) {
+    workingDir = makeTempDirSync({prefix: 'tako'});
+  } else {
+    // @todo get system temp dir
+    workingDir = `/tmp/tako`;
+    mkdirSync(workingDir, true);
+  }
+
+  return new Filesystem(workingDir);
+}
+
+export function getTargetFilesystem(output: string): Filesystem {
+  // If path is empty or relative, prepending current directory
+  if (output.substr(0, 1) !== '/') {
+    output = `${cwd()}/${output}`;
+  }
+  return new Filesystem(output);
 }

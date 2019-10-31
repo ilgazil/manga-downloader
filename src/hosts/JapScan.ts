@@ -1,21 +1,9 @@
 // @ts-ignore
-import hostFactory from '../core/hostFactory.ts';
-
+import {HostInterface, factory, getCloudflareCookies} from '../host.ts';
 // @ts-ignore
-import {getCloudflareCookies, BeautifulDom, HTMLElementData} from '../../vendor.ts';
-
+import {Filesystem} from '../filesystem.ts';
 // @ts-ignore
-import HostInterface from './HostInterface.ts';
-
-// @ts-ignore
-import Filesystem from '../core/Filesystem.ts';
-
-// @ts-ignore
-import Manga from '../manga/Manga.ts';
-// @ts-ignore
-import Chapter from '../manga/Chapter.ts';
-// @ts-ignore
-import Scan from '../manga/Scan.ts';
+import {Manga, Chapter, BeautifulDom, HTMLElementData} from '../types.ts';
 
 interface HostResponse {
   headers: Headers;
@@ -53,7 +41,7 @@ export default class JapScan implements HostInterface {
       // Resolve name and chapters
       .then(({headers, response, html}: HostResponse) => {
         console.debug('Retrieving manga info');
-        const parser = hostFactory(response.url);
+        const parser = factory(response.url);
 
         return Promise
           .all([
@@ -62,9 +50,16 @@ export default class JapScan implements HostInterface {
             parser.parseChapterUris(html)
           ])
           .then(([id, title, uris]: [string, string, string[]]) => {
-            const manga = new Manga(id);
-            manga.setTitle(title);
-            manga.setChapters(uris.map((uri: string) => new Chapter(uri.substring(this.uri.length, uri.lastIndexOf('/')), uri)));
+            const manga = {
+              id,
+              title,
+              chapters: uris.map((uri: string) => {
+                return {
+                  id: uri.substring(this.uri.length, uri.lastIndexOf('/')),
+                  uri,
+                }
+              })
+            };
 
             return {headers, manga}
           });
@@ -96,7 +91,7 @@ export default class JapScan implements HostInterface {
               .map((
                 {headers, chapter, response, html}: { headers: Headers, chapter: Chapter, response; HostResponse, html: string }
               ) => {
-                return hostFactory(response.url)
+                return factory(response.url)
                   .parseScanUris(html)
                   .then((uris) => ({headers, chapter, uris}));
               })
@@ -108,12 +103,13 @@ export default class JapScan implements HostInterface {
             results.forEach((
               {headers, chapter, uris}: { headers: Headers, chapter: Chapter, uris: string[] }
             ) => {
-              chapter.setScans(uris.map((uri: string) => {
-                const scan = new Scan(uri.substring(uri.lastIndexOf('/') + 1), uri);
-                scan.setHeaders(headers);
-
-                return scan;
-              }));
+              chapter.scans = uris.map((uri: string) => {
+                return {
+                  name: uri.substring(uri.lastIndexOf('/') + 1),
+                  uri,
+                  headers,
+                };
+              });
             });
 
             return manga;

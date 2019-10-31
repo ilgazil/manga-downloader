@@ -1,20 +1,11 @@
 // @ts-ignore
-import hostFactory from '../core/hostFactory.ts';
-// @ts-ignore
 import BeautifulDom from '../../vendor/beautiful-dom/beautifuldom.ts';
-
 // @ts-ignore
-import Filesystem from '../core/Filesystem.ts';
-
+import {Filesystem} from '../filesystem.ts';
 // @ts-ignore
-import HostInterface from './HostInterface.ts';
-
+import {HostInterface, factory} from '../host.ts';
 // @ts-ignore
-import Manga from '../manga/Manga.ts';
-// @ts-ignore
-import Chapter from '../manga/Chapter.ts';
-// @ts-ignore
-import Scan from '../manga/Scan.ts';
+import {Manga, Chapter} from '../types.ts';
 
 export default class LaBayScan implements HostInterface {
   private uri = 'http://labayscan.com/';
@@ -30,7 +21,7 @@ export default class LaBayScan implements HostInterface {
       // Resolve name and chapters
       .then(({response, html}) => {
         console.debug('Retrieving manga info');
-        const parser = hostFactory(response.url);
+        const parser = factory(response.url);
 
         return Promise
           .all([
@@ -39,11 +30,16 @@ export default class LaBayScan implements HostInterface {
             parser.parseChapterUris(html),
           ])
           .then(([id, title, chapterUris]: [string, string, string[]]) => {
-            const manga = new Manga(id);
-            manga.setTitle(title);
-            manga.setChapters(chapterUris.map((uri) => new Chapter(uri.substring(uri.lastIndexOf('/', uri.length - 2) + 1, uri.lastIndexOf('/')), uri)));
-
-            return manga;
+            return {
+              id,
+              title,
+              chapters: chapterUris.map((uri) => {
+                return {
+                  id: uri.substring(uri.lastIndexOf('/', uri.length - 2) + 1, uri.lastIndexOf('/')),
+                  uri,
+                }
+              }),
+            };
           });
       })
 
@@ -68,7 +64,7 @@ export default class LaBayScan implements HostInterface {
             .all(results
               .filter((result) => !!result)
               .map(({response, html, chapter}) => {
-                return hostFactory(response.url)
+                return factory(response.url)
                   .parseScanUris(html)
                   .then((uris) => ({chapter, uris}));
               })
@@ -80,7 +76,12 @@ export default class LaBayScan implements HostInterface {
             results.forEach((
               {chapter, uris}: { chapter: Chapter, uris: string[] }
             ) => {
-              chapter.setScans(uris.map((uri: string) => new Scan(uri.substring(uri.lastIndexOf('/') + 1), uri)));
+              chapter.scans = uris.map((uri: string) => {
+                return {
+                  name: uri.substring(uri.lastIndexOf('/') + 1),
+                  uri,
+                };
+              });
             });
 
             return manga;

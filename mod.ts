@@ -1,11 +1,7 @@
-// @ts-ignore
+import {getMangaInfos} from './src/host.ts';
 import {PipelinePayload, downloadChapters, createChapterPdfs, createFinalPdf, clearCache} from './src/pipeline.ts';
-// @ts-ignore
 import {getWorkingFilesystem, getTargetFilesystem} from './src/filesystem.ts';
-// @ts-ignore
-import {factory as hostFactory} from './src/host.ts';
 
-// @ts-ignore
 import {Manga} from './src/types.ts';
 
 export interface TakoOptionList {
@@ -25,9 +21,7 @@ export function tako(
 
   console.debug(`Cache directory: ${workingFilesystem.resolve()}`);
 
-  return hostFactory(uri)
-    // Get manga definition
-    .getManga(uri, getWorkingFilesystem(noCache))
+  return getMangaInfos(uri, getWorkingFilesystem(noCache))
 
     // Creating payload for pipeline
     .then((manga: Manga): PipelinePayload => {
